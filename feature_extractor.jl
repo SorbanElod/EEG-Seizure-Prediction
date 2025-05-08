@@ -4,20 +4,21 @@ Pkg.add("EEGToolkit");
 Pkg.add("Plots");
 Pkg.add("Statistics");
 Pkg.add("FFTW");
+Pkg.add("OrderedCollections");
 using MAT
 using EEGToolkit
 using Plots
 using Statistics
 using Printf
 using FFTW
+using OrderedCollections
 
 
 struct CustomEEG
-    signals::Dict{String, TimeSeries}
+    signals::OrderedDict{String, TimeSeries}
 end
 
-
-frequency_bands = Dict(
+frequency_bands = OrderedDict(
     "delta" => (0, 4),
     "theta" => (4, 8),
     "alpha" => (8, 14),
@@ -26,6 +27,7 @@ frequency_bands = Dict(
     "high_gamma" => (100, 200)
 )
 
+number_of_features_per_channel = 10
 
 function load_eeg(file::String, segment_name::String)
     file = matopen(file)
@@ -35,7 +37,7 @@ function load_eeg(file::String, segment_name::String)
     eeg_data         = segment["data"]
     data_length_sec  = segment["data_length_sec"]
     sampling_freq    = segment["sampling_frequency"]
-    channels         = segment["channels"]
+    channels         = segment["channels"]    
     sequence         = segment["sequence"]
   
     signals = Dict{String, TimeSeries}()
@@ -63,8 +65,7 @@ function get_segment_name(file_name::String)
 end
 
 
-
-function get_features_of_a_signal(signal::Vector{Float64})
+function extract_statistical_features(signal::Vector{Float64})
     min_value = min(signal...)
     max_value = max(signal...)
     mean = Statistics.mean(signal)
@@ -73,30 +74,7 @@ function get_features_of_a_signal(signal::Vector{Float64})
 end
 
 
-function print_features(signal_identifier, min, max, mean, std, band_powers)
-    @printf("%s: min = %s, max = %s, mean = %s, std = %s \n", signal_identifier, min, max, mean, std)
-    for (idx, (band_name, band_range)) in enumerate(frequency_bands)
-        band_start = band_range[1]
-        band_end = band_range[2]
-        println("\t\t$band_name ([$band_start - $band_end]): $(band_powers[idx])")
-    end
-end
-
-
-function compare_two_signal_metadata(signal_1::TimeSeries, signal_2::TimeSeries)
-    min_of_first, max_of_first, mean_of_first, std_of_first = get_features_of_a_signal(signal_1.x)
-    band_powers_1 = get_frequency_bands(signal_1.x, signal_1.fs)
-
-    min_of_second, max_of_second, mean_of_second, std_of_second = get_features_of_a_signal(signal_2.x)
-    band_powers_2 = get_frequency_bands(signal_2.x, signal_2.fs)
-
-
-    print_features("Interictal segment", min_of_first, max_of_first, mean_of_first, std_of_first, band_powers_1)
-    print_features("Preictal segment", min_of_second, max_of_second, mean_of_second, std_of_second, band_powers_2)
-end
-
-
-function get_frequency_bands(signal, sampling_frequency)
+function extract_frequency_bands(signal, sampling_frequency)
     fft_signal = fft(signal)
     len_of_signal = length(signal)
     n = 1:len_of_signal
@@ -119,6 +97,46 @@ function get_frequency_bands(signal, sampling_frequency)
 end
 
 
+function print_features(signal_identifier, min, max, mean, std, band_powers)
+    @printf("%s: min = %s, max = %s, mean = %s, std = %s \n", signal_identifier, min, max, mean, std)
+    for (idx, (band_name, band_range)) in enumerate(frequency_bands)
+        band_start = band_range[1]
+        band_end = band_range[2]
+        println("\t\t$band_name ([$band_start - $band_end]): $(band_powers[idx])")
+    end
+end
+
+
+function compare_features_of_two_signal(signal_1::TimeSeries, signal_2::TimeSeries)
+    min_of_first, max_of_first, mean_of_first, std_of_first = extract_statistical_features(signal_1.x)
+    band_powers_1 = extract_frequency_bands(signal_1.x, signal_1.fs)
+
+    min_of_second, max_of_second, mean_of_second, std_of_second = extract_statistical_features(signal_2.x)
+    band_powers_2 = extract_frequency_bands(signal_2.x, signal_2.fs)
+
+    print_features("Interictal segment", min_of_first, max_of_first, mean_of_first, std_of_first, band_powers_1)
+    print_features("Preictal segment", min_of_second, max_of_second, mean_of_second, std_of_second, band_powers_2)
+end
+
+
+function extract_features_from_signal(signal::TimeSeries)
+    min, max, mean, std = extract_statistical_features(signal.x)
+    band_powers = extract_frequency_bands(signal.x, signal.fs)    
+    features = [min, max, mean, std, band_powers...]
+    return features
+end
+
+
+function extract_features_from_all_channels(eeg::CustomEEG)
+    channels = collect(keys(eeg.signals))
+    features = Vector{Float64}()
+    for channel in channels
+        append!(features, extract_features_from_signal(eeg.signals[channel]))        
+    end
+    println(features)
+end
+
+
 
 function main()
     folder_path = "/media/eszter/G/machine_learning_cs/kaggle_data/Dog_1/Dog_1/"
@@ -135,8 +153,9 @@ function main()
     
     # print(interictal_eeg.signals[channel].fs) - sampling frequency
     # print(interictal_eeg.signals[channel].x) - signal
-    compare_two_signal_metadata(interictal_eeg.signals[channel], preictal_eeg.signals[channel])
-
+    compare_features_of_two_signal(interictal_eeg.signals[channel], preictal_eeg.signals[channel])
+    extract_features_from_all_channels(interictal_eeg)
+    extract_features_from_all_channels(preictal_eeg)
     # print(channels)
     # channels = keys(eeg.signals)
     # print(eeg.signals["NVC1202_32_002_Ecog_c013"])
