@@ -18,7 +18,7 @@ function compare_features_of_two_signal(signal_1::TimeSeries, signal_2::TimeSeri
     min_of_second, max_of_second, mean_of_second, std_of_second = extract_statistical_features(signal_2.x)
     band_powers_2 = extract_frequency_bands_from_three_segments(signal_2.x, signal_2.fs)
 
-    print_features("Interictal segment", min_of_first, max_of_first, mean_of_first, std_of_first, band_powers_1[1:6])
+    print_features("Interictal segment", min_of_first, max_of_first, mean_of_first, std_of_first, band_powers_1[1:6]) # we compare just the frequency bands of the first segment
     print_features("Preictal segment", min_of_second, max_of_second, mean_of_second, std_of_second, band_powers_2[1:6])
 end
 

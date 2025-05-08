@@ -29,24 +29,31 @@ function extract_statistical_features(signal::Vector{Float64})
 end
 
 
+function fast_fourier_transform(signal::Vector{Float64}, sampling_frequency::Int)
+    fft_signal = fft(signal)
+    len_of_signal = length(signal)
+    freqs = fftfreq(len_of_signal, sampling_frequency)
+    half_size = div(len_of_signal, 2)
+    one_sided_freqs = freqs[1:half_size]
+    amplitudes = abs.(fft_signal[1:half_size])
+    return one_sided_freqs, amplitudes
+end
+
+
+
 function extract_frequency_bands_from_signal(signal, sampling_frequency)
     # Applying Hanning window to the signal before the FFT 
     hanning_window = hanning(length(signal))
     windowed_signal = signal .* hanning_window
 
-    fft_signal = fft(windowed_signal)
-    len_of_signal = length(windowed_signal)
-    freqs = fftfreq(len_of_signal, sampling_frequency)
-    half_size = div(len_of_signal, 2)
-    one_sided_freqs = freqs[1:half_size]
-    amplitudes = abs.(fft_signal[1:half_size])
+    frequencies, amplitudes = fast_fourier_transform(windowed_signal, sampling_frequency)
 
     num_bands = length(frequency_bands)
     band_powers = zeros(Float64, num_bands)
     for (idx, (band_name, band_range)) in enumerate(frequency_bands)
         band_start = band_range[1]
         band_end = band_range[2]
-        band_indices= findall(f -> band_start <= f < band_end, one_sided_freqs)
+        band_indices = findall(f -> band_start <= f < band_end, frequencies)
         band_power = mean(amplitudes[band_indices].^2)
         logarithmic_band_power = log10(band_power)
         band_powers[idx] = logarithmic_band_power
