@@ -80,7 +80,7 @@ function extract_frequency_bands_from_three_segments(signal, sampling_frequency)
 end
 
 
-function extract_features_from_signal(signal::TimeSeries)
+function extract_statistical_and_frequency_features_from_signal(signal::TimeSeries)
     min, max, mean, std = extract_statistical_features(signal.x)
     band_powers = extract_frequency_bands_from_three_segments(signal.x, signal.fs)    
     features = [min, max, mean, std, band_powers...]
@@ -92,7 +92,7 @@ function extract_statistical_and_frequency_features_from_all_channels(eeg::Custo
     channels = collect(keys(eeg.signals))
     features = Vector{Float64}()
     for channel in channels
-        append!(features, extract_features_from_signal(eeg.signals[channel]))        
+        append!(features, extract_statistical_and_frequency_features_from_signal(eeg.signals[channel]))        
     end
     return features
 end

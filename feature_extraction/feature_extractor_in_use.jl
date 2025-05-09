@@ -8,6 +8,7 @@ function main()
     interictal_eeg= load_eeg(interictal_file_path, get_segment_name(interictal_file_name));
     
     interictal_features = extract_statistical_and_frequency_features_from_all_channels(interictal_eeg)
+    println(length(interictal_features))
     println(interictal_features)
 end
 
