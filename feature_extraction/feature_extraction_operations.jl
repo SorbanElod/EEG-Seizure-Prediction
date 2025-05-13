@@ -1,13 +1,14 @@
-import Pkg;
-Pkg.add("Statistics");
-Pkg.add("FFTW");
-Pkg.add("OrderedCollections");
-Pkg.add("DSP") # for Hanning windowing
+# import Pkg;
+# Pkg.add("Statistics");
+# Pkg.add("FFTW");
+# Pkg.add("OrderedCollections");
+# Pkg.add("DSP") # for Hanning windowing
 using Statistics
 using Printf
 using FFTW
 using OrderedCollections
 using DSP
+using EEGToolkit
 
 
 frequency_bands = OrderedDict(

@@ -1,10 +1,11 @@
-import Pkg;
-Pkg.add("MAT");
-Pkg.add("EEGToolkit");
-Pkg.add("Plots");
+# import Pkg;
+# Pkg.add("MAT");
+# Pkg.add("EEGToolkit");
+# Pkg.add("Plots");
 using MAT
 using EEGToolkit
 using Plots
+using OrderedCollections
 
 struct CustomEEG
     signals::OrderedDict{String, TimeSeries}
