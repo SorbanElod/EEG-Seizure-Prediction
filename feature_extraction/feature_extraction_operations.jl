@@ -15,7 +15,7 @@ frequency_bands = OrderedDict(
     "delta" => (0, 4),
     "theta" => (4, 8),
     "alpha" => (8, 14),
-    "beta" => (15, 30),
+    "beta" => (14, 30),
     "low_gamma" => (30, 100),
     "high_gamma" => (100, 200)
 )
