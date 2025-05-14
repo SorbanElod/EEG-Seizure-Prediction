@@ -60,6 +60,12 @@ function main_svm(X_interictal, Y_interictal, X_preictal, Y_preictal)
     X_test = X[:, (num_train + 1):end]
     Y_test = Y[(num_train + 1):end]
 
+    train_means = mean(X_train, dims=2)
+    train_stds = std(X_train, dims=2)
+    train_stds_stable = train_stds .+ 1e-12
+    X_train = (X_train .- train_means) ./ train_stds_stable   
+    X_test = (X_test .- train_means) ./ train_stds_stable
+
     println("Training samples: $(size(X_train, 2)), Test samples: $(size(X_test, 2))")
     println("Training class distribution: $(count(==(0), Y_train)) interictal, $(count(==(1), Y_train)) preictal")
     println("Test class distribution: $(count(==(0), Y_test)) interictal, $(count(==(1), Y_test)) preictal") 
@@ -67,34 +73,48 @@ function main_svm(X_interictal, Y_interictal, X_preictal, Y_preictal)
     # ---------------------------------------
 
     w = Dict{Float64, Float64}()
-    w[0.0] = length(Y_train) / (2.0 * count(==(0), Y_train))
-    w[1.0] = length(Y_train) / (2.0 * count(==(1), Y_train))
+    w[0.0] = length(Y_train) / (count(==(0), Y_train))
+    w[1.0] = length(Y_train) / (count(==(1), Y_train))
     @show w
 
-    model = svmtrain(X_train, Float64.(Y_train); 
-                svmtype=SVC, 
-                kernel=Kernel.Linear,
-                cost=100.0,
-                weights=w
-            )
-    
-    # ---------------------------------------
-    y_pred_test, decision_values = svmpredict(model, X_test)
-    accuracy = mean(y_pred_test .== Y_test)
-    @printf "Test accuracy: %.2f%%\n" (accuracy * 100)
+    #ma, mc, mg = 0.0, 0.0, 0.0
+    #for c in [10.0^p for p in -2:1:8]
+    #   for g in [10.0^p for p in -10:1:0]
+        
+        model = svmtrain(X_train, Float64.(Y_train); 
+        svmtype=SVC, 
+        kernel=Kernel.RadialBasis,
+        cost=0.1, #c,
+        weights=w,
+        gamma=0.001 #g
+        )
+        
+        # ---------------------------------------
+        y_pred_test, decision_values = svmpredict(model, X_test)
+        accuracy = mean(y_pred_test .== Y_test)
+        @printf "Test accuracy: %.2f%%\n" (accuracy * 100)
+        
+        tp = sum((y_pred_test .== 1) .& (Y_test .== 1))
+        tn = sum((y_pred_test .== 0) .& (Y_test .== 0))
+        fp = sum((y_pred_test .== 1) .& (Y_test .== 0))
+        fn = sum((y_pred_test .== 0) .& (Y_test .== 1))
+        
+        @printf "True Positives: %d\n" tp
+        @printf "True Negatives: %d\n" tn
+        @printf "False Positives: %d\n" fp
+        @printf "False Negatives: %d\n\n" fn
 
-    tp = sum((y_pred_test .== 1) .& (Y_test .== 1))
-    tn = sum((y_pred_test .== 0) .& (Y_test .== 0))
-    fp = sum((y_pred_test .== 1) .& (Y_test .== 0))
-    fn = sum((y_pred_test .== 0) .& (Y_test .== 1))
-    
-    @printf "True Positives: %d\n" tp
-    @printf "True Negatives: %d\n" tn
-    @printf "False Positives: %d\n" fp
-    @printf "False Negatives: %d\n" fn
+        #if accuracy > ma
+        #    ma = accuracy
+        #    mc = c
+        #    mg = g
+        #end
+       #end
+    #end
+    #@show mg, mc, ma
 end
 
-folder_paths = ["/data/kaggle_data/Dog_1", "/data/kaggle_data/Dog_1"]
+folder_paths = ["/data/kaggle_data/Dog_1", "/data/kaggle_data/Dog_2"]
 interictal_pattern = "*interictal_segment_*.mat"
 preictal_pattern = "*preictal_segment_*.mat"
 
@@ -118,19 +138,18 @@ Y_interictal = vcat(Y_is...)
 X_preictal = hcat(X_ps...)
 Y_preictal = vcat(Y_ps...)
 
-main_svm(X_interictal, Y_interictal, X_preictal, Y_preictal)
-
+main_svm(X_interictal[:, 1:200], Y_interictal[1:200], X_preictal, Y_preictal)
 
 #=
 Example output for predictions after training on Dog 1 and Dog 2:
 
-Training samples: 806, Test samples: 202
-Training class distribution: 767 interictal, 39 preictal
-Test class distribution: 193 interictal, 9 preictal
-w = Dict(0.0 => 0.5254237288135594, 1.0 => 10.333333333333334)
-Test accuracy: 99.01%
-True Positives: 9
-True Negatives: 191
-False Positives: 2
-False Negatives: 0
+Training samples: 212, Test samples: 54
+Training class distribution: 163 interictal, 49 preictal
+Test class distribution: 37 interictal, 17 preictal
+w = Dict(0.0 => 1.3006134969325154, 1.0 => 4.326530612244898)
+Test accuracy: 88.89%
+True Positives: 11
+True Negatives: 37
+False Positives: 0
+False Negatives: 6
 =#
