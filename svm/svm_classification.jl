@@ -1,9 +1,16 @@
-# import Pkg
-# Pkg.add("LIBSVM")
-# Pkg.add("Glob")
-# Pkg.add("Random")
-# Pkg.add("Statistics")
-# Pkg.add("Printf")
+import Pkg
+Pkg.add("LIBSVM")
+Pkg.add("Glob")
+Pkg.add("Random")
+Pkg.add("Statistics")
+Pkg.add("Printf")
+Pkg.add("FFTW");
+Pkg.add("OrderedCollections");
+Pkg.add("DSP") # for Hanning windowing
+Pkg.add("MAT");
+Pkg.add("EEGToolkit");
+Pkg.add("Plots");
+
 using LIBSVM
 using Glob
 using Random
@@ -57,27 +64,27 @@ function main_svm(X_interictal, Y_interictal, X_preictal, Y_preictal)
     num_train = floor(Int, 0.8 * size(X, 2))
     X_train = X[:, 1:num_train]
     Y_train = Y[1:num_train]
-    X_test = X[:, (num_train + 1):end]
-    Y_test = Y[(num_train + 1):end]
+    X_test = X[:, (num_train+1):end]
+    Y_test = Y[(num_train+1):end]
 
     println("Training samples: $(size(X_train, 2)), Test samples: $(size(X_test, 2))")
     println("Training class distribution: $(count(==(0), Y_train)) interictal, $(count(==(1), Y_train)) preictal")
-    println("Test class distribution: $(count(==(0), Y_test)) interictal, $(count(==(1), Y_test)) preictal") 
+    println("Test class distribution: $(count(==(0), Y_test)) interictal, $(count(==(1), Y_test)) preictal")
 
     # ---------------------------------------
 
-    w = Dict{Float64, Float64}()
+    w = Dict{Float64,Float64}()
     w[0.0] = length(Y_train) / (2.0 * count(==(0), Y_train))
     w[1.0] = length(Y_train) / (2.0 * count(==(1), Y_train))
     @show w
 
-    model = svmtrain(X_train, Float64.(Y_train); 
-                svmtype=SVC, 
-                kernel=Kernel.Linear,
-                cost=100.0,
-                weights=w
-            )
-    
+    model = svmtrain(X_train, Float64.(Y_train);
+        svmtype=SVC,
+        kernel=Kernel.Linear,
+        cost=100.0,
+        weights=w
+    )
+
     # ---------------------------------------
     y_pred_test, decision_values = svmpredict(model, X_test)
     accuracy = mean(y_pred_test .== Y_test)
@@ -87,14 +94,16 @@ function main_svm(X_interictal, Y_interictal, X_preictal, Y_preictal)
     tn = sum((y_pred_test .== 0) .& (Y_test .== 0))
     fp = sum((y_pred_test .== 1) .& (Y_test .== 0))
     fn = sum((y_pred_test .== 0) .& (Y_test .== 1))
-    
+
     @printf "True Positives: %d\n" tp
     @printf "True Negatives: %d\n" tn
     @printf "False Positives: %d\n" fp
     @printf "False Negatives: %d\n" fn
 end
 
-folder_paths = ["/data/kaggle_data/Dog_1", "/data/kaggle_data/Dog_1"]
+base_dir = "/mnt/d/REPO/uni/VI.FELEV/ML/eeg/"
+path = ["Dog_1/Dog_1"]
+folder_paths = [joinpath(base_dir, p) for p in path]
 interictal_pattern = "*interictal_segment_*.mat"
 preictal_pattern = "*preictal_segment_*.mat"
 
@@ -104,6 +113,7 @@ X_ps = []
 Y_ps = []
 
 for folder_path in folder_paths
+    println("Processing folder: $folder_path")
     X_i, Y_i = load_features_for_class(folder_path, interictal_pattern, 0)
     X_p, Y_p = load_features_for_class(folder_path, preictal_pattern, 1)
 
