@@ -79,7 +79,40 @@ function main_svm(X_interictal, Y_interictal, X_preictal, Y_preictal)
 
     # ---------------------------------------
 
+<<<<<<< HEAD
     w = Dict{Float64,Float64}()
+    w[0.0] = length(Y_train) / (2.0 * count(==(0), Y_train))
+    w[1.0] = length(Y_train) / (2.0 * count(==(1), Y_train))
+    @show w
+
+    model = svmtrain(X_train, Float64.(Y_train);
+        svmtype=SVC,
+        kernel=Kernel.Linear,
+        cost=100.0,
+        weights=w
+    )
+
+    # ---------------------------------------
+    y_pred_test, decision_values = svmpredict(model, X_test)
+    accuracy = mean(y_pred_test .== Y_test)
+    @printf "Test accuracy: %.2f%%\n" (accuracy * 100)
+
+    tp = sum((y_pred_test .== 1) .& (Y_test .== 1))
+    tn = sum((y_pred_test .== 0) .& (Y_test .== 0))
+    fp = sum((y_pred_test .== 1) .& (Y_test .== 0))
+    fn = sum((y_pred_test .== 0) .& (Y_test .== 1))
+
+    @printf "True Positives: %d\n" tp
+    @printf "True Negatives: %d\n" tn
+    @printf "False Positives: %d\n" fp
+    @printf "False Negatives: %d\n" fn
+end
+
+base_dir = "/mnt/d/REPO/uni/VI.FELEV/ML/eeg/"
+path = ["Dog_1/Dog_1"]
+folder_paths = [joinpath(base_dir, p) for p in path]
+=======
+    w = Dict{Float64, Float64}()
     w[0.0] = length(Y_train) / (count(==(0), Y_train))
     w[1.0] = length(Y_train) / (count(==(1), Y_train))
     @show w
@@ -122,9 +155,7 @@ function main_svm(X_interictal, Y_interictal, X_preictal, Y_preictal)
 end
 
 folder_paths = ["/data/kaggle_data/Dog_1", "/data/kaggle_data/Dog_2"]
-base_dir = "/mnt/d/REPO/uni/VI.FELEV/ML/eeg/"
-path = ["Dog_1/Dog_1"]
-folder_paths = [joinpath(base_dir, p) for p in path]
+>>>>>>> origin/master
 interictal_pattern = "*interictal_segment_*.mat"
 preictal_pattern = "*preictal_segment_*.mat"
 
